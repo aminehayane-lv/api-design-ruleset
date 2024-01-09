@@ -1,0 +1,132 @@
+rules:
+  oas-3:
+    description: You MUST use OpenAPI Specifications (OAS 3x) to describe your API. 
+    severity: error
+    recommended: true
+    given: $
+    then:
+      field: openapi
+      function: truthy
+  http-method:
+    description: You MUST not use HTTP method names in URI (GET, POST, PUT, etc)
+    message: URI contains HTTP method name
+    severity: error
+    recommended: true
+    given:
+      - $.paths[?(@property && @property.match(
+        "/(get|post|put|delete|patch)[\/A-Z_\-]?" ))]~
+      - $.paths[?(@property && @property.match(
+        "/(create|remove|list)[\/A-Z_\-]?" ))]~
+    then:
+      field: "@key"
+      function: undefined
+  api-in-uri:
+    description: You MUST not use “api” word in URI 
+    severity: error
+    recommended: true
+    given:
+      - $.paths[].match(api)
+    then:
+      field: "@key"
+      function: undefined
+  has-contact:
+    description: "You MUST provide API Owner contact in contact (with at least name and email)."
+    severity: error
+    given: $
+    then:
+      field: info.contact
+      function: truthy
+    documentationUrl: https://swagger.io/specification/#contact-object
+  has-title:
+    description: "You MUST provide the API name in title"
+    severity: error
+    given: $
+    then:
+      field: info.title 
+      function: truthy
+    documentationUrl: https://swagger.io/specification/#info-object
+  has-description:
+    description: "You MUST provide the API description"
+    severity: error
+    given: $
+    then:
+      field: info.description 
+      function: truthy
+    documentationUrl: https://swagger.io/specification/#info-object
+  protocol-https: 
+    description: "ALL requests MUST go through `https` protocol only"
+    formats:
+      - oas3
+    recommended: true
+    severity: error
+    message: "Servers MUST be https and no other protocol is allowed."
+    given: $.servers..url
+    then:
+      function: pattern
+      functionOptions:
+        match: "/^https:/"
+  resource-kebab-case:
+    description: You MUST use kebab-case for resource name.
+    message: "Resource name MUST be kebab-case (lower-case and separated with hyphens)"
+    severity: warn
+    recommended: true
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: ^(/[a-z0-9-.]+|/{[a-zA-Z0-9_]+})+$
+  query-param-camel-case:
+    description: You MUST use camelCase for query parameters names.
+    message: Query param name must be camelCase in {{path}}
+    severity: warn
+    recommended: true
+    given: $..parameters[?(@.in == 'query')].name
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+  path-param-camel-case:
+    description: You MUST use camelCase for path parameters names.
+    message: Query param name must be camelCase. 
+    severity: error
+    given: $..parameters[?(@.in == 'path')].name
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+  headers-pascal-case:
+    description: Headers SHOULD be Pascal-Case and separated by hyphens 
+    message: "{{value}} {{error}}"
+    severity: warn
+    recommended: true
+    given:
+      - $..parameters[?(@.in=="header")].name
+    then:
+      function: casing
+      functionOptions:
+        type: pascal
+        separator:
+          char: "-"
+  body-camel-case:
+    description: You SHOULD use camelCase for request & response body.
+    severity: warn
+    given: $.components.schemas[?(@.type == 'object')].properties
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+  body-has-description:
+    description: You MUST provide description for each field in request & response body.
+    severity: error
+    given: $.components.schemas[?(@.type == 'object')].properties[*]
+    then:
+      field: description
+      function: truthy
+  body-has-example:
+    description: You MUST provide example for each field in request & response body.
+    severity: warn
+    given: $.components.schemas[?(@.type == 'object')].properties[*]
+    then:
+      field: example
+      function: truthy
+extends: "spectral:oas"
